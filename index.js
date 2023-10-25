@@ -88,6 +88,9 @@ io.on("connection", (socket) => {
     }
     //send all user connected to the new user
     socket.emit("users", users);
+    //send all post to the new user
+    let post = readPost();
+    socket.emit("post", post);
 
     //send the new user connected to all other users
     socket.broadcast.emit("user_connected", {
@@ -111,6 +114,13 @@ io.on("connection", (socket) => {
             username: socket.username,
         });
     });
+});
+
+// This point is the send the image saved in server
+app.get("/data/imgs/:file", function (req, res) {
+    let file = req.params.file;
+
+    res.sendFile(__dirname + "/data/imgs" + "/" + file);
 });
 
 server.listen(5000, (err) => {
