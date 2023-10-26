@@ -4,6 +4,8 @@ const cors = require("cors"); // Cors module to handle cross origin
 const { join } = require("node:path"); //I use this to get the root path, just in case server serv web page as well
 const { Server } = require("socket.io"); //To create a socket.io server
 const bodyParser = require("body-parser"); // Body-parser module to parse JSON objects
+const formidable = require("formidable"); //Formidable is used to handle files in server
+const fs = require("fs"); //Module to read files
 
 //-------------------This code is to create servers, http server and Socket io server -----------------------------------
 const app = express();
@@ -18,7 +20,7 @@ const io = new Server(server, {
 //-------------------Using modules ------------------------------------------------
 
 const { authenticateUser } = require("./modules/userAuth");
-const { readPost } = require("./modules/post");
+const { readPost, writePostJson } = require("./modules/post");
 
 //-------------------This code is to enable CORS -----------------------------------
 app.use(
@@ -121,6 +123,44 @@ app.get("/data/imgs/:file", function (req, res) {
     let file = req.params.file;
 
     res.sendFile(__dirname + "/data/imgs" + "/" + file);
+});
+
+//This function handle files sended from client
+app.post("/post", async function (req, res) {
+    let form = new formidable.IncomingForm();
+    form.parse(req, function (error, fields, file) {
+        /* console.log(fields);
+        console.log(file.file[0].filepath); */
+        let userData = readPost();
+        let numberOfPost = userData.length;
+
+        let newpath = "";
+        let savepicture = "";
+        if (file.file) {
+            let filepath = file.file[0].filepath;
+            newpath = "./data/imgs/";
+            newpath += fields.user + "" + numberOfPost + ".jpg";
+            savepicture = fields.user + "" + numberOfPost + ".jpg";
+            fs.rename(filepath, newpath, function () {
+                res.send("Text with img posted!!");
+                res.end();
+            });
+        } else {
+            res.send("Text posted!!");
+            res.end();
+        }
+        let newPost = {
+            text: fields.text[0],
+            img: savepicture,
+            likes: 0,
+        };
+        console.log(newPost);
+        writePostJson(fields.user, newPost);
+        setTimeout(() => {
+            let posts = readPost();
+            io.emit("newPost", posts);
+        }, 5000);
+    });
 });
 
 server.listen(5000, (err) => {
