@@ -1,11 +1,12 @@
 const express = require("express"); //Create express instance
 const { createServer } = require("node:http"); //Algo para combinar el servidor http con io
 const cors = require("cors"); // Cors module to handle cross origin
-const { join } = require("node:path"); //I use this to get the root path, just in case server serv web page as well
+//const { join } = require("node:path"); //I use this to get the root path, just in case server serv web page as well
 const { Server } = require("socket.io"); //To create a socket.io server
 const bodyParser = require("body-parser"); // Body-parser module to parse JSON objects
 const formidable = require("formidable"); //Formidable is used to handle files in server
 const fs = require("fs"); //Module to read files
+const path = require("path");
 
 //-------------------This code is to create servers, http server and Socket io server -----------------------------------
 const app = express();
@@ -48,19 +49,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 //------------------- -----------------------------------
 
-/* Descomentar si me traigo la carpeta build desde react
-app.get("/", (req, res) => {
-    res.sendFile(join(__dirname, "index.html"));
+//To run app from same server
+app.use(express.static(path.join(__dirname, "build")));
+app.get("/", function (req, res) {
+    res.sendFile(path.join(__dirname, "build", "index.html"));
 });
-*/
-
-/* I don't need this code because I'm doing user validation with the midleware io.use
-app.post("/login", textBodyParser, async function (req, res) {
-    let data = JSON.parse(req.body);
-    console.log(data); //print the HTTP Request Headers
-    //console.log(req.headers); //print the HTTP Request Headers
-    res.sendStatus(200);
-}); */
 
 io.use((socket, next) => {
     //console.log(socket.handshake.auth);
@@ -80,6 +73,7 @@ io.use((socket, next) => {
 
 //A user is connected
 io.on("connection", (socket) => {
+    console.log("user connected", socket.username);
     const users = [];
     //Add the new user to array users where are all users connected
     for (let [id, socket] of io.of("/").sockets) {
@@ -121,8 +115,9 @@ io.on("connection", (socket) => {
 // This point is the send the image saved in server
 app.get("/data/imgs/:file", function (req, res) {
     let file = req.params.file;
-
-    res.sendFile(__dirname + "/data/imgs" + "/" + file);
+    /* console.log(file);
+    console.log(__dirname + "/data/imgs/" + file); */
+    res.sendFile(__dirname + "/data/imgs/" + file);
 });
 
 //This function handle files sended from client
